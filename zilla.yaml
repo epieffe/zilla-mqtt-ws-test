@@ -1,0 +1,86 @@
+name: mqtt-test
+
+bindings:
+  tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 7114
+        - 7183
+    routes:
+        - when:
+          - port: 7114
+          exit: http_server
+        - when:
+            - port: 7183
+          exit: mqtt_server
+
+  http_server:
+    type: http
+    kind: server
+    routes:
+      - when:
+          - headers:
+              :scheme: http
+              upgrade: websocket
+          - headers:
+              :scheme: https
+              upgrade: websocket
+        exit: ws_server
+
+  ws_server:
+    type: ws
+    kind: server
+    routes:
+      - when:
+          - protocol: mqtt
+        exit: mqtt_server
+
+  mqtt_server:
+    type: mqtt
+    kind: server
+    exit: mqtt_kafka_mapping
+
+  mqtt_kafka_mapping:
+    type: mqtt-kafka
+    kind: proxy
+    options:
+      topics:
+        sessions: mqtt-sessions
+        messages: mqtt-messages
+        retained: mqtt-retained
+    exit: kafka_cache_client
+
+  kafka_cache_client:
+    type: kafka
+    kind: cache_client
+    exit: kafka_cache_server
+
+  kafka_cache_server:
+    type: kafka
+    kind: cache_server
+    options:
+      bootstrap:
+        - mqtt-sessions
+        - mqtt-messages
+        - mqtt-retained
+    exit: kafka_client
+
+  kafka_client:
+    type: kafka
+    kind: client
+    options:
+      servers:
+        - ${{env.KAFKA_BOOTSTRAP_SERVER}}
+    exit: tcp_client
+
+  tcp_client:
+    type: tcp
+    kind: client
+
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
