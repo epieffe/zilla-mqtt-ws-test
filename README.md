@@ -12,7 +12,7 @@ Start Zilla with Kafka and kafka-ui using Docker Compose:
 ```
 docker compose up -d
 ```
-Zilla is listening on port 7114 for WebSocket connections and on port 7184 for TCP connections.
+Zilla is listening on port 7114 for WebSocket connections and on port 7183 for TCP connections.
 
 You can use the Mosquitto client to publish messages
 ```
